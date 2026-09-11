@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/faiface/beep v1.1.0
-	github.com/wailsapp/wails/v3 v3.0.0-beta.2
+	github.com/wailsapp/wails/v3 v3.0.0-beta.17
 )
 
 require (
