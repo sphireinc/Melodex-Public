@@ -1,0 +1,16 @@
+frontend/node_modules
+frontend/.vite
+frontend/dist/*
+!frontend/dist/index.html
+frontend/dist/assets/
+frontend/dist/*.map
+frontend/test-results/
+frontend/playwright-report/
+*.log
+bin
+build/bin
+build/tmp
+.tmp-test/
+.DS_Store
+.melodex
+.task

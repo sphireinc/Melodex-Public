@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "0.0.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "0.0.0",
+			"CompanyName": "Sphire",
+			"FileDescription": "Local-first personal music library manager",
+			"LegalCopyright": "(c) 2026, Sphire",
+			"ProductName": "Melodex",
+			"Comments": "Melodex desktop music library"
+		}
+	}
+}

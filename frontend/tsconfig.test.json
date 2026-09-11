@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "../.tmp-test/frontend",
+    "target": "ES2022"
+  },
+  "include": [
+    "src/test-env.d.ts",
+    "src/hooks/eventSyncPolicy.ts",
+    "src/hooks/eventSyncPolicy.test.ts",
+    "src/lib/viewHelpers.ts",
+    "src/lib/viewHelpers.test.ts",
+    "src/lib/toolReadiness.ts",
+    "src/lib/toolReadiness.test.ts",
+    "src/lib/videoDiagnostics.ts",
+    "src/lib/videoDiagnostics.test.ts",
+    "src/lib/virtualWindow.ts",
+    "src/lib/virtualWindow.test.ts",
+    "src/components/Player/videoStageLifecycle.ts",
+    "src/components/Player/videoStageLifecycle.test.ts",
+    "src/types.ts"
+  ]
+}

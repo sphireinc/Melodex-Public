@@ -1,0 +1,189 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+env:
+  NODE_OPTIONS: "--max-old-space-size=4096"
+
+jobs:
+  build:
+    env:
+      APPLE_DEVELOPER_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}
+      APPLE_DEVELOPER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
+      APPLE_DEVELOPER_APPLE_ID: ${{ secrets.APPLE_DEVELOPER_APPLE_ID }}
+      APPLE_DEVELOPER_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_DEVELOPER_APP_SPECIFIC_PASSWORD }}
+      APPLE_DEVELOPER_TEAM_ID: ${{ secrets.APPLE_DEVELOPER_TEAM_ID }}
+      APPLE_DEVELOPER_IDENTITY: ${{ secrets.APPLE_DEVELOPER_IDENTITY }}
+      WIN_SIGNING_CERT_BASE64: ${{ secrets.WIN_SIGNING_CERT_BASE64 }}
+      WIN_SIGNING_CERT_PASSWORD: ${{ secrets.WIN_SIGNING_CERT_PASSWORD }}
+      WIN_SIGNING_TIMESTAMP_URL: ${{ secrets.WIN_SIGNING_TIMESTAMP_URL }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64
+            os: ubuntu-22.04
+            platform: linux/amd64
+            installer: false
+          - name: windows-amd64
+            os: windows-latest
+            platform: windows/amd64
+            installer: true
+          - name: macos-universal
+            os: macos-latest
+            platform: darwin/universal
+            installer: false
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Linux native build deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libasound2-dev libgtk-3-dev libglib2.0-dev libwebkit2gtk-4.0-dev
+
+      - name: Install NSIS
+        if: runner.os == 'Windows'
+        run: choco install nsis --no-progress --yes
+
+      - name: Verify macOS signing configuration
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          missing=()
+          for key in \
+            APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 \
+            APPLE_DEVELOPER_CERTIFICATE_PASSWORD \
+            APPLE_DEVELOPER_APPLE_ID \
+            APPLE_DEVELOPER_APP_SPECIFIC_PASSWORD \
+            APPLE_DEVELOPER_TEAM_ID \
+            APPLE_DEVELOPER_IDENTITY
+          do
+            if [[ -z "${!key:-}" ]]; then
+              missing+=("${key}")
+            fi
+          done
+          if [[ "${#missing[@]}" -gt 0 ]]; then
+            printf 'macOS release artifacts must be signed and notarized. Missing secrets: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Install Wails CLI
+        shell: bash
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-beta.2
+
+      - name: Add Go bin to PATH
+        shell: bash
+        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build release artifact
+        env:
+          MELODEX_RELEASE_CHANNEL: stable
+          MELODEX_BUILD_PLATFORM: ${{ matrix.platform }}
+          MELODEX_BUILD_INSTALLER: ${{ matrix.installer && '1' || '0' }}
+        shell: bash
+        run: ./build.sh
+
+      - name: Import macOS signing certificate
+        if: runner.os == 'macOS'
+        uses: Apple-Actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ env.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}
+          p12-password: ${{ env.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
+
+      - name: Sign and notarize macOS app
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_BUNDLE="bin/Melodex.app"
+          NOTARY_ZIP="bin/Melodex-notary.zip"
+
+          codesign --force --deep --strict --options runtime --timestamp \
+            --sign "${APPLE_DEVELOPER_IDENTITY}" "${APP_BUNDLE}"
+          codesign --verify --deep --strict --verbose=4 "${APP_BUNDLE}"
+
+          ditto -c -k --keepParent "${APP_BUNDLE}" "${NOTARY_ZIP}"
+          xcrun notarytool submit "${NOTARY_ZIP}" \
+            --apple-id "${APPLE_DEVELOPER_APPLE_ID}" \
+            --password "${APPLE_DEVELOPER_APP_SPECIFIC_PASSWORD}" \
+            --team-id "${APPLE_DEVELOPER_TEAM_ID}" \
+            --wait
+          xcrun stapler staple "${APP_BUNDLE}"
+          spctl -a -vvv -t exec "${APP_BUNDLE}"
+
+      - name: Sign Windows binaries
+        if: runner.os == 'Windows' && env.WIN_SIGNING_CERT_BASE64 != ''
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path certificate | Out-Null
+          Set-Content -Path certificate\certificate.txt -Value $env:WIN_SIGNING_CERT_BASE64
+          certutil -decode certificate\certificate.txt certificate\certificate.pfx | Out-Null
+          $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin' -Recurse -Filter signtool.exe | Select-Object -First 1
+          if (-not $signtool) {
+            throw "signtool.exe not found"
+          }
+          $timestamp = if ($env:WIN_SIGNING_TIMESTAMP_URL) { $env:WIN_SIGNING_TIMESTAMP_URL } else { 'http://timestamp.digicert.com' }
+          Get-ChildItem -Path .\bin -Filter *.exe | ForEach-Object {
+            & $signtool.FullName sign /fd sha256 /tr $timestamp /f certificate\certificate.pfx /p $env:WIN_SIGNING_CERT_PASSWORD $_.FullName
+          }
+
+      - name: Package release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/release
+          if [[ "${RUNNER_OS}" == "macOS" ]]; then
+            test -d "bin/Melodex.app"
+            ditto -c -k --keepParent "bin/Melodex.app" "build/release/Melodex-${GITHUB_REF_NAME}-${{ matrix.name }}.zip"
+          elif [[ "${RUNNER_OS}" == "Windows" ]]; then
+            count=0
+            while IFS= read -r -d '' file; do
+              cp "${file}" "build/release/$(basename "${file}")"
+              count=$((count + 1))
+            done < <(find bin -maxdepth 1 -type f \( -name '*-installer.exe' -o -name '*.msix' \) -print0)
+            if [[ "${count}" -eq 0 ]]; then
+              echo "No Windows installer artifact was produced under bin/" >&2
+              exit 1
+            fi
+          else
+            count=0
+            while IFS= read -r -d '' file; do
+              cp "${file}" "build/release/Melodex-${GITHUB_REF_NAME}-${{ matrix.name }}$(basename "${file}" | sed 's/^Melodex//')"
+              count=$((count + 1))
+            done < <(find bin -maxdepth 1 -type f -print0)
+            if [[ "${count}" -eq 0 ]]; then
+              echo "No Linux artifact was produced under bin/" >&2
+              exit 1
+            fi
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: melodex-${{ matrix.name }}
+          path: build/release/*
+          if-no-files-found: error
+          retention-days: 14

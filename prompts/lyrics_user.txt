@@ -1,0 +1,51 @@
+Track context:
+- File name: {{.FileName}}
+- Source kind: {{.SourceKind}}
+- Source reference: {{.SourceRef}}
+- Source URL: {{.SourceURL}}
+- Library root: {{.LibraryRoot}}
+- Title hint: {{.TitleHint}}
+- Artist hint: {{.ArtistHint}}
+- Album hint: {{.AlbumHint}}
+- Duration hint: {{.DurationHint}}
+- Transcript available: {{.HasTranscript}}
+- Timestamped transcript available: {{.HasTimestampedTranscript}}
+
+Resolved metadata from the first pass:
+- Title: {{.ResolvedTitle}}
+- Artist: {{.ResolvedArtist}}
+- Album: {{.ResolvedAlbum}}
+- Track number: {{.ResolvedTrackNumber}}
+- Year: {{.ResolvedYear}}
+- Genre: {{.ResolvedGenre}}
+- Confidence: {{.ResolvedConfidence}}
+- Notes: {{.ResolvedNotes}}
+
+Target library paths:
+- Artist directory: {{.TargetArtistDir}}
+- Album directory: {{.TargetAlbumDir}}
+- Base filename: {{.TargetBaseName}}
+- Audio path: {{.TargetAudioPath}}
+- Lyrics path: {{.TargetLyricsPath}}
+- Timed lyrics path: {{.TargetTimedLyricsPath}}
+- Metadata path: {{.TargetMetadataPath}}
+
+Provided lyrics or transcript input:
+{{.InputText}}
+
+Task:
+Analyze the provided track context, resolved metadata, target library paths, and any supplied lyrics/transcript input.
+Prefer the resolved title, artist, and album over the raw hints when they are present.
+
+Return lyrics only when they are present in the provided input, safely transcribed from provided audio/transcript data, public domain, licensed, or otherwise clearly allowed.
+
+If the input does not contain usable lyrics or transcript text, return an empty lyrics string.
+
+If timestamped transcript data is available, use it to populate timed_lyrics.
+If timestamp data is not available, leave timed_lyrics as an empty array.
+Do not estimate or invent timestamps.
+
+Use the file name, source reference, source URL, resolved metadata, and target library paths to identify the track and assess confidence.
+Do not use hints as a source for lyrics.
+
+Return only the JSON object requested by the system prompt.

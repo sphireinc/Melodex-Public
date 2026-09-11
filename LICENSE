@@ -1,0 +1,16 @@
+Melodex licensing status
+========================
+
+This repository does not currently include an open-source license grant.
+Nothing in the public availability of this source code, its Git history, or
+its documentation should be interpreted as permission to copy, modify,
+redistribute, sublicense, or sell the software.
+
+The copyright and other rights in the Melodex project remain with their
+respective rights holders unless a separate written license says otherwise.
+Third-party components are licensed separately; see
+THIRD_PARTY_NOTICES.md.
+
+This file records the repository's current licensing status. It is not legal
+advice. Select and publish an actual project license before distributing
+Melodex as open-source software.

@@ -1,0 +1,49 @@
+{
+  "name": "melodex-frontend",
+  "private": true,
+  "license": "UNLICENSED",
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json,md}\" && eslint \"src/**/*.{ts,tsx}\" --fix",
+    "typecheck": "tsc -p tsconfig.json",
+    "typecheck:strict": "tsc -p tsconfig.strict.json",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "test": "npm run typecheck && tsc -p tsconfig.test.json && node ../.tmp-test/frontend/hooks/eventSyncPolicy.test.js && node ../.tmp-test/frontend/lib/viewHelpers.test.js && node ../.tmp-test/frontend/lib/toolReadiness.test.js && node ../.tmp-test/frontend/lib/videoDiagnostics.test.js && node ../.tmp-test/frontend/lib/virtualWindow.test.js && node ../.tmp-test/frontend/components/Player/videoStageLifecycle.test.js",
+    "test:visual": "playwright test --grep-invert \"large sanitized fixture\"",
+    "test:performance": "playwright test tests/visual/large-library.spec.ts --grep \"large sanitized fixture\"",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "6.3.1",
+    "@dnd-kit/sortable": "10.0.0",
+    "@dnd-kit/utilities": "3.2.2",
+    "@wailsio/runtime": "3.0.0-beta.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "5.6.0",
+    "video.js": "8.23.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@types/react": "^18.3.19",
+    "@types/react-dom": "^18.3.5",
+    "@typescript-eslint/eslint-plugin": "8.33.1",
+    "@typescript-eslint/parser": "8.33.1",
+    "@vitejs/plugin-react": "^6.0.2",
+    "eslint": "8.57.1",
+    "eslint-import-resolver-typescript": "3.6.1",
+    "eslint-plugin-import": "2.32.0",
+    "eslint-plugin-react-hooks": "4.6.2",
+    "eslint-plugin-react-refresh": "0.4.24",
+    "prettier": "3.8.3",
+    "typescript": "^5.8.3",
+    "vite": "^8.0.16"
+  }
+}
