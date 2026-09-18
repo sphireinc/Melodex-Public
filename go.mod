@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/faiface/beep v1.1.0
-	github.com/wailsapp/wails/v3 v3.0.0-beta.17
+	github.com/wailsapp/wails/v3 v3.0.0-beta.22
 )
 
 require (
@@ -15,7 +15,6 @@ require (
 	github.com/hajimehoshi/go-mp3 v0.3.0 // indirect
 	github.com/hajimehoshi/oto v0.7.1 // indirect
 	github.com/icza/bitio v1.0.0 // indirect
-	github.com/jchv/go-winloader v0.0.0-20250406163304-c1995be93bd1 // indirect
 	github.com/jfreymuth/oggvorbis v1.0.1 // indirect
 	github.com/jfreymuth/vorbis v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
